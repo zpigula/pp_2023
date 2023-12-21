@@ -1,0 +1,159 @@
+# Launching:
+# docker compose up
+
+# AMCL
+# ros2 run nav2_map_server map_server --ros-args -p yaml_file_name:=my_map_save.yaml -p use_sim_time:=true
+# ros2 run nav2_util lifecycle_bringup map_server  
+# ros2 run nav2_amcl amcl --ros-args -p use_sim_time:=true
+
+# version: '1.0'
+services:
+  rosbot_simulation:
+    image: my_image
+    container_name: my-sim-container
+    user: zp
+    network_mode: host
+    ipc: host
+    runtime: nvidia
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
+      - /home/zbigniew/ws_nav_src:/home/zp/dev_ws
+    environment:
+      - DISPLAY=${DISPLAY:-:0.0}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    devices:
+      - /dev/dri:/dev/dri # For H/W transcoding
+    command:
+      ros2 launch zbot rsp_sim.launch_zbot.py world:=./src/zbot/worlds/turtlebot3_house.world
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  rosbot_rviz:
+    image: my_nav2_image
+    container_name: my-rviz-container
+    user: zp
+    network_mode: host
+    ipc: host
+    runtime: nvidia
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
+      - /home/zbigniew/ws_nav_src:/home/zp/dev_ws
+    environment:
+      - DISPLAY=${DISPLAY:-:0.0}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    devices:
+      - /dev/dri:/dev/dri # For H/W transcoding
+    command:
+      rviz2
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  rosbot_teleop:
+    image: my_teleop_image
+    container_name: my-teleop-container
+    stdin_open: true
+    tty: true
+    privileged: true
+    user: zp
+    network_mode: host
+    ipc: host
+    runtime: nvidia
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
+      - /home/zbigniew/ws_joy:/home/zp/dev_ws
+      - /dev/input/:/dev/input/ 
+    environment:
+      - DISPLAY=${DISPLAY:-:0.0}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    devices:
+      - /dev/dri:/dev/dri # For H/W transcoding
+    command:
+      #bash
+      ros2 launch zbot_joy joystick.launch.py
+      #ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r /cmd_vel:=/diff_cont/cmd_vel_unstamped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+  rosbot_slam:
+    image: my_nav2_image
+    container_name: my-slam-container
+    user: zp
+    network_mode: host
+    ipc: host
+    runtime: nvidia
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
+      - /home/zbigniew/ws_nav_src:/home/zp/dev_ws
+    environment:
+      - DISPLAY=${DISPLAY:-:0.0}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    devices:
+      - /dev/dri:/dev/dri # For H/W transcoding
+    command:
+      ros2 launch slam_toolbox online_async_launch.py slam_params_file:=./src/zbot/config/mapper_params_online_async.yaml use_sim_time:=true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+  
+  navigation:
+    image: my_nav2_image
+    container_name: my-nav2-container
+    user: zp
+    network_mode: host
+    ipc: host
+    runtime: nvidia
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
+      - /home/zbigniew/ws_nav_src:/home/zp/dev_ws
+    environment:
+      - DISPLAY=${DISPLAY:-:0.0}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    devices:
+      - /dev/dri:/dev/dri # For H/W transcoding
+    command:
+      ros2 launch nav2_bringup navigation_launch.py use_sim_time:=true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
